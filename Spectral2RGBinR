@@ -47,7 +47,6 @@ x_ill=illuminants[,c("wlnm","D65")]# different iluminant shift colors: d65 is op
 # so D65 is default choice
 x_ill_wdc=x_ill[x_ill$wlnm%in%c(spec_wlnm_x),]
 dim(x_ill_wdc)
-names(x_ill_wdc)[1]="wl"
 
 ## original dimension of the hyperspectral image
 dimension=c(512,204,512)
