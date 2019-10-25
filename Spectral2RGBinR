@@ -1,0 +1,131 @@
+
+## from HSI (reflectance) to RGB color image
+
+
+library(R.matlab)
+library(rhdf5)
+library(colorscience)
+library(raster)
+library(OpenImageR)
+library(doParallel)
+library(parallel)
+library(imager)
+library(beepr)
+library(pavo)
+## choose three wavelengths to approximate the RGB color: R: 640nm, G: 550nm, B:460nm
+# path="E:/HSIs/tomato_color_redness/specim_tomato_final_18022019/hsi/"
+# path="E:/HSIs/tomato_color_redness/specim_tomato_quality_20022019/sample_L/"
+path="E:/HSIs/tomato_color_redness/specim_tomato_quality_21022019/sample_Cal/"
+# path="E:/HSIs/tomato_color_redness/specim_tomato_quality_22022019/sample_F/"
+
+## the wavelengths of these hyperspectral image
+wi=read.csv("wavelength_interval.csv")
+spec_color=wi$w_i
+wln=spec_color
+
+## select wavelengths
+spec_wlnm=x_ill$wlnm
+spec_wlnm_x=spec_wlnm[spec_wlnm<=700 & spec_wlnm>=400]
+
+### extract the cie function
+ciedat <- sensdata(visual = c("cie2", "cie10"))
+## cutomize the CIE 1931 2 function
+ciedata_10 = ciedat[,c(1,5:7)]
+ciedata_10_s=ciedata_10[ciedata_10$wl %in% spec_wlnm_x,]
+#
+######### ## match the wavelengths
+cor_wlnm=c()
+for (i in spec_wlnm_x){
+  cor_i=which(abs(wln-i)==min(abs(wln-i)))
+  print(c(i, cor_i[1]))
+  cor_wlnm=append(cor_wlnm, cor_i[1])
+}
+
+# length(cor_wlnm)
+# length(unique(cor_wlnm))
+# wln[cor_wlnm]
+
+x_ill=illuminants[,c("wlnm","D65")]# different iluminant shift colors: d65 is optimal; d50, redish; d75, blueish
+# so D65 is default choice
+x_ill_wdc=x_ill[x_ill$wlnm%in%c(spec_wlnm_x),]
+dim(x_ill_wdc)
+names(x_ill_wdc)[1]="wl"
+
+## original dimension of the hyperspectral image
+dimension=c(512,204,512)
+
+## read the hyperspectral images and compress
+files=list.files(path)
+for (i_p in c(1:4)){
+  id= files[i_p]
+  file_name=file.path(path, id, paste("/results/REFLECTANCE_",id, sep=""))
+  xxx=read.ENVI(paste(file_name, ".dat", sep=""), 
+                headerfile=paste(file_name,
+                                 ".hdr", sep=""))
+                                 
+  yyyy <- aperm(array(xxx, dimension), c(3,1,2))/max(yyyy)
+
+  ########
+  # dim(xxx)
+  xxx_or=yyyy[,,cor_wlnm]
+  dim(xxx_or)
+  xxx_or_2d=array(xxx_or, dim=c(dim(xxx_or)[1]*dim(xxx_or)[2], dim(xxx_or)[3]))
+  dim(xxx_or_2d)
+  # Plot data using estimated perceived colour
+  ########          converting spectral reflectance to RGB color image
+  max(xxx_or_2d)
+  min(xxx_or_2d)
+  xxx_or_2d_n= xxx_or_2d/max(xxx_or_2d)
+  head(xxx_or_2d_n)
+  
+  detectCores(all.tests = FALSE, logical = TRUE)
+  
+  cl <- makeCluster(12)
+  registerDoParallel(cl)
+  
+  ptime <- system.time({
+    
+    tomato_ist_rgb_image<- foreach(i=c(1:dim(xxx_or_2d_n)[1]), .combine=rbind, .packages="colorscience") %dopar% {
+      shit=xxx_or_2d_n[i,]
+      shit_2d=as.matrix(data.frame(wavelength=spec_wlnm_x, spec=shit))
+      
+      # first change to xyz
+      XYZ <-  spectra2XYZ(shit_2d)
+      # xyz to RGB
+      rgb1 = XYZ2RGB(XYZ, illuminant = "D65", observer = 2)
+    }
+  })
+  
+  print(ptime)
+  stopCluster(cl) ## releasing the cores
+  
+  ## beep for 5 seconds when it finished running
+  for (i in c(1:5)){
+    Sys.sleep(1)
+    beep() }
+  
+  # tomato_ist_rgb_image_list[[i]] = tomato_ist_rgb_image
+  #write.csv(tomato_ist_rgb_image, paste(paste("tomato_spec2RGB", id, sep = "_"), ".csv", sep = ""))
+  
+  # summary(tomato_ist_rgb_image)
+  tomato_ist_rgb=array(tomato_ist_rgb_image,dim= c( 512, 512, 3))
+  tomato_ist_rgb_n = (tomato_ist_rgb-0.001)/(max(tomato_ist_rgb)*0.5 -0.001)
+  tomato_ist_rgb_n[tomato_ist_rgb_n>1]=1
+  tomato_ist_rgb_n[tomato_ist_rgb_n< 0]=0
+  ## gomma corection here
+  tomato_ist_rgb_g = gamma_correction(tomato_ist_rgb_n, gamma = 1.4)
+  
+  ## rotate and flip the image 
+  tomato_ist_rgb_g_rt = tomato_ist_rgb_g
+  for (i in c(1:3)){
+    tomato_ist_rgb_g_rt[,,i] = rti(tomato_ist_rgb_g_rt[,,i])}
+  
+  tomato_rgb = as.cimg(tomato_ist_rgb_g_rt)
+  #x11()
+  #plot(tomato_rgb)
+  
+  save.image(tomato_rgb, paste(paste("tomato_rgb_D65",id,sep = "_"), ".png", sep = ""), quality = 1.0)
+}
+
+
+
