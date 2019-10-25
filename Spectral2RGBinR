@@ -13,10 +13,8 @@ library(imager)
 library(beepr)
 library(pavo)
 ## choose three wavelengths to approximate the RGB color: R: 640nm, G: 550nm, B:460nm
-# path="E:/HSIs/tomato_color_redness/specim_tomato_final_18022019/hsi/"
+path="E:/HSIs/tomato_color_redness/specim_tomato_final_18022019/hsi/"
 # path="E:/HSIs/tomato_color_redness/specim_tomato_quality_20022019/sample_L/"
-path="E:/HSIs/tomato_color_redness/specim_tomato_quality_21022019/sample_Cal/"
-# path="E:/HSIs/tomato_color_redness/specim_tomato_quality_22022019/sample_F/"
 
 ## the wavelengths of these hyperspectral image
 wi=read.csv("wavelength_interval.csv")
