@@ -12,6 +12,9 @@ library(parallel)
 library(imager)
 library(beepr)
 library(pavo)
+## function to rotate and flip the image
+rti <- function(x) apply(t(flip.matrix(x)),2,rev)
+
 ## choose three wavelengths to approximate the RGB color: R: 640nm, G: 550nm, B:460nm
 path="E:/HSIs/tomato_color_redness/specim_tomato_final_18022019/hsi/"
 # path="E:/HSIs/tomato_color_redness/specim_tomato_quality_20022019/sample_L/"
