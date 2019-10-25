@@ -53,8 +53,7 @@ dimension=c(512,204,512)
 
 ## read the hyperspectral images and compress
 files=list.files(path)
-for (i_p in c(1:4)){
-  id= files[i_p]
+for (id in files){
   file_name=file.path(path, id, paste("/results/REFLECTANCE_",id, sep=""))
   xxx=read.ENVI(paste(file_name, ".dat", sep=""), 
                 headerfile=paste(file_name,
@@ -63,29 +62,23 @@ for (i_p in c(1:4)){
   yyyy <- aperm(array(xxx, dimension), c(3,1,2))/max(yyyy)
 
   ########
-  # dim(xxx)
   xxx_or=yyyy[,,cor_wlnm]
   dim(xxx_or)
   xxx_or_2d=array(xxx_or, dim=c(dim(xxx_or)[1]*dim(xxx_or)[2], dim(xxx_or)[3]))
   dim(xxx_or_2d)
   # Plot data using estimated perceived colour
   ########          converting spectral reflectance to RGB color image
-  max(xxx_or_2d)
-  min(xxx_or_2d)
   xxx_or_2d_n= xxx_or_2d/max(xxx_or_2d)
-  head(xxx_or_2d_n)
   
+  ### parallel compressing using multicors
   detectCores(all.tests = FALSE, logical = TRUE)
-  
   cl <- makeCluster(12)
   registerDoParallel(cl)
   
   ptime <- system.time({
-    
-    tomato_ist_rgb_image<- foreach(i=c(1:dim(xxx_or_2d_n)[1]), .combine=rbind, .packages="colorscience") %dopar% {
+      tomato_ist_rgb_image<- foreach(i=c(1:dim(xxx_or_2d_n)[1]), .combine=rbind, .packages="colorscience") %dopar% {
       shit=xxx_or_2d_n[i,]
       shit_2d=as.matrix(data.frame(wavelength=spec_wlnm_x, spec=shit))
-      
       # first change to xyz
       XYZ <-  spectra2XYZ(shit_2d)
       # xyz to RGB
@@ -100,12 +93,13 @@ for (i_p in c(1:4)){
   for (i in c(1:5)){
     Sys.sleep(1)
     beep() }
-  
-  # tomato_ist_rgb_image_list[[i]] = tomato_ist_rgb_image
+  # save the file if necessary
   #write.csv(tomato_ist_rgb_image, paste(paste("tomato_spec2RGB", id, sep = "_"), ".csv", sep = ""))
   
   # summary(tomato_ist_rgb_image)
+  ## from 2d to 3d
   tomato_ist_rgb=array(tomato_ist_rgb_image,dim= c( 512, 512, 3))
+  ## color balancing
   tomato_ist_rgb_n = (tomato_ist_rgb-0.001)/(max(tomato_ist_rgb)*0.5 -0.001)
   tomato_ist_rgb_n[tomato_ist_rgb_n>1]=1
   tomato_ist_rgb_n[tomato_ist_rgb_n< 0]=0
