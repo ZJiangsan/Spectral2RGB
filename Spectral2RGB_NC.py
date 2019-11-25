@@ -86,7 +86,7 @@ def save_image(image_numpy, image_path):
 ## read the wave bands of hyperspectral image from specim IQ
 
 
-with open('wavelength_interval.csv') as csvfile:
+with open('WavebandsSpecimIQ.csv') as csvfile:
     readCSV = csv.reader(csvfile, delimiter=',')
     wi = []
     i = 0
