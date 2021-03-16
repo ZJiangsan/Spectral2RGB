@@ -80,10 +80,10 @@ for (id in files){
   
   ptime <- system.time({
       tomato_ist_rgb_image<- foreach(i=c(1:dim(xxx_or_2d_n)[1]), .combine=rbind, .packages="colorscience") %dopar% {
-      shit=xxx_or_2d_n[i,]
-      shit_2d=as.matrix(data.frame(wavelength=spec_wlnm_x, spec=shit))
+      shi=xxx_or_2d_n[i,]
+      shi_2d=as.matrix(data.frame(wavelength=spec_wlnm_x, spec=shi))
       # first change to xyz
-      XYZ <-  spectra2XYZ(shit_2d)
+      XYZ <-  spectra2XYZ(shi_2d)
       # xyz to RGB
       rgb1 = XYZ2RGB(XYZ, illuminant = "D65", observer = 2)
     }
